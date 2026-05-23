@@ -17,7 +17,7 @@
         <module>api-gateway/api-gateway</module>
         <module>user-service/user-service</module>
         <module>order-service/order-service</module>
-        <module>inventory-service/inventory-service</module>
+        <module>inventory-service</module>
         <module>payment-service/payment-service</module>
         <module>notification-service/notification-service</module>
     </modules>
