@@ -15,7 +15,7 @@ import java.util.UUID;
 public class AuthResponse {
 
     private boolean success;
-
+    private String message;
     private String accessToken;
     private String refreshToken;
     private long expiresIn;      // in milliseconds
