@@ -7,9 +7,9 @@ spring:
 
   # PostgreSQL
   datasource:
-    url: jdbc:postgresql://localhost:5432/userdb
-    username: foodbyte
-    password: foodbyte_pass
+    url: jdbc:postgresql://localhost:5433/userdb
+    username: postgres
+    password: postgres
 
   jpa:
     hibernate:
@@ -17,18 +17,17 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.time_zone: Asia/Kolkata
 
-  # Flyway
   flyway:
     enabled: true
     locations: classpath:db/migration
-
   # Redis
   data:
     redis:
       host: localhost
       port: 6379
-      password: foodbyte_redis
+
 
   # Kafka
   kafka:
@@ -47,3 +46,6 @@ jwt:
   secret: foodbyte-super-secret-key-minimum-256-bits-long
   expiration: 3600000        # 1 hour in ms
   refresh-expiration: 604800000  # 7 days in ms
+
+otp:
+  ttl-seconds: 300

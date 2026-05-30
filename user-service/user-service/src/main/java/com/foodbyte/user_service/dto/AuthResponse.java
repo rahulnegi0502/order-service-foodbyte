@@ -1,5 +1,6 @@
 package com.foodbyte.user_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.foodbyte.user_service.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuthResponse {
 
     private boolean success;

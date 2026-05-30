@@ -4,15 +4,18 @@ import com.foodbyte.user_service.dto.*;
 import com.foodbyte.user_service.entity.RefreshToken;
 import com.foodbyte.user_service.entity.Role;
 import com.foodbyte.user_service.entity.User;
+import com.foodbyte.user_service.exception.*;
 import com.foodbyte.user_service.repository.RefreshTokenRepository;
 import com.foodbyte.user_service.repository.UserRepository;
 import com.foodbyte.user_service.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,15 +65,15 @@ public class AuthService {
 
         // Step 1 — confirm passwords match
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords do not match");
+            throw new BadRequestException("Passwords do not match");
         }
 
         // Step 2 — check duplicates
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new DuplicateResourceException("Email already registered");
         }
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new RuntimeException("Phone already registered");
+            throw new DuplicateResourceException("Phone already registered");
         }
 
         // Step 3 — build and save user
@@ -111,7 +114,7 @@ public class AuthService {
 
         // Step 2 — load user
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Step 3 — generate access token
         String accessToken = jwtUtil.generateToken(
@@ -167,7 +170,7 @@ public class AuthService {
         // Step 3 — revoke refresh token in DB
         User user = userRepository
                 .findByEmail(jwtUtil.extractEmail(token))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         refreshTokenRepository.findByUser(user)
                 .forEach(rt -> {
@@ -187,16 +190,16 @@ public class AuthService {
         RefreshToken refreshToken = refreshTokenRepository
                 .findByToken(refreshTokenString)
                 .orElseThrow(() ->
-                        new RuntimeException("Refresh token not found"));
+                        new InvalidTokenException("Refresh token not found"));
 
         // Step 2 — check not revoked
         if (refreshToken.isRevoked()) {
-            throw new RuntimeException("Refresh token has been revoked");
+            throw new InvalidTokenException("Refresh token has been revoked");
         }
 
         // Step 3 — check not expired
         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Refresh token has expired");
+            throw new InvalidTokenException("Refresh token has expired");
         }
 
         // Step 4 — check user is active
@@ -247,7 +250,7 @@ public class AuthService {
         // Step 1 — check user exists
         userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() ->
-                        new RuntimeException("No user found with this phone"));
+                        new ResourceNotFoundException("No user found with this phone"));
 
         // Step 2 — generate 6 digit OTP
         String otp = String.format("%06d",
@@ -276,12 +279,12 @@ public class AuthService {
 
         // Step 2 — check OTP exists (not expired)
         if (storedOtp == null) {
-            throw new RuntimeException("OTP expired or not sent");
+            throw new InvalidOtpException("OTP expired or not sent");
         }
 
         // Step 3 — check OTP matches
         if (!storedOtp.equals(request.getOtp())) {
-            throw new RuntimeException("Invalid OTP");
+            throw new InvalidOtpException("Invalid OTP");
         }
 
         // Step 4 — delete OTP from Redis (prevent reuse)
@@ -290,7 +293,7 @@ public class AuthService {
         // Step 5 — mark phone as verified
         User user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new InvalidOtpException("User not found"));
 
         user.setPhoneVerified(true);
         userRepository.save(user);
